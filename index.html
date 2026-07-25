@@ -1,0 +1,2151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prism Vault AI — Departures</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0f151b;
+    --board: #161f28;
+    --board-edge: #202b36;
+    --amber: #d89519;
+    --amber-dim: #6b4e1e;
+    --teal: #56d8c6;
+    --text: #e9edf0;
+    --muted: #7c8894;
+    --red: #ff6b5e;
+    --row-hover: rgba(255,176,32,0.06);
+    --row-border: rgba(255,255,255,0.03);
+    --shadow: rgba(0,0,0,0.6);
+    --shadow-2: rgba(255,255,255,0.03);
+    --glow: 0.35;
+  }
+  html[data-theme="light"]{
+    --bg: #eef1f4;
+    --board: #ffffff;
+    --board-edge: #dbe1e6;
+    --amber: #b3760a;
+    --amber-dim: #e4c691;
+    --teal: #0f8f7d;
+    --text: #1b232b;
+    --muted: #66727d;
+    --red: #d94a3d;
+    --row-hover: rgba(179,118,10,0.07);
+    --row-border: rgba(0,0,0,0.05);
+    --shadow: rgba(20,30,40,0.12);
+    --shadow-2: rgba(0,0,0,0.02);
+    --glow: 0.15;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at top, color-mix(in srgb, var(--board) 60%, var(--bg)) 0%, var(--bg) 60%);
+    color:var(--text);
+    font-family:'Inter', sans-serif;
+    min-height:100vh;
+    padding:32px 16px 80px;
+    transition: background 0.25s ease, color 0.25s ease;
+  }
+
+  .frame{
+    max-width:960px;
+    margin:0 auto;
+  }
+
+  /* HEADER */
+  .header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    border-bottom:2px solid var(--board-edge);
+    padding-bottom:18px;
+    margin-bottom:6px;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .brand{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    font-size:28px;
+    letter-spacing:0.5px;
+    color:var(--text);
+  }
+  .brand span{color:var(--amber);}
+  .subhead{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--muted);
+    letter-spacing:2px;
+    text-transform:uppercase;
+    margin-top:4px;
+  }
+  .clock{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    color:var(--amber);
+    text-align:right;
+    letter-spacing:1px;
+  }
+  .clock small{display:block;color:var(--muted);font-size:11px;margin-top:2px;letter-spacing:1.5px;}
+
+  .header-right{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+
+  .icon-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:32px;
+    height:32px;
+    border-radius:6px;
+    background:var(--board);
+    border:1px solid var(--board-edge);
+    color:var(--muted);
+    cursor:pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    flex-shrink:0;
+  }
+  .icon-btn:hover{
+    color:var(--amber);
+    border-color:var(--amber-dim);
+  }
+  .icon-btn svg{width:16px;height:16px;}
+
+  .switch{
+    position:relative;
+    width:46px;
+    height:24px;
+    border-radius:12px;
+    background:var(--board);
+    border:1px solid var(--board-edge);
+    cursor:pointer;
+    padding:0;
+    transition: background 1.0s ease, border-color 1.0s ease;
+    flex-shrink:0;
+  }
+  .switch .knob{
+    position:absolute;
+    top:2px;
+    left:2px;
+    width:18px;
+    height:18px;
+    border-radius:50%;
+    background:var(--amber);
+    box-shadow:0 0 6px var(--amber);
+    transition: transform 0.25s ease, background 0.25s ease;
+  }
+  html[data-theme="light"] .switch .knob{
+    transform: translateX(22px);
+    background:var(--teal);
+    box-shadow:0 0 6px var(--teal);
+  }
+  .switch:focus-visible{
+    outline:2px solid var(--teal);
+    outline-offset:2px;
+  }
+
+  /* MARQUEE TICKER */
+  .marquee{
+    margin-top:36px;
+    background:var(--board);
+    border:1px solid var(--board-edge);
+    border-radius:6px;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    box-shadow: inset 0 1px 0 var(--shadow-2);
+  }
+  .marquee-label{
+    flex-shrink:0;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--bg);
+    background:var(--amber);
+    padding:10px 14px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .marquee-label::before{
+    content:"";
+    width:6px;height:6px;
+    border-radius:50%;
+    background:var(--bg);
+    flex-shrink:0;
+  }
+  .marquee-track{
+    flex:1;
+    overflow:hidden;
+    white-space:nowrap;
+    position:relative;
+  }
+  .marquee-content{
+    display:inline-block;
+    padding-left:100%;
+    animation: marquee-scroll 46s linear infinite;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.5px;
+    color:var(--text);
+  }
+  .marquee-content span{color:var(--teal);}
+  .marquee-content .sep{color:var(--amber-dim); margin:0 4px;}
+  .marquee-track:hover .marquee-content{animation-play-state:paused;}
+  @keyframes marquee-scroll{
+    0%{transform:translateX(0);}
+    100%{transform:translateX(-100%);}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .marquee-content{animation:none; padding-left:16px;}
+  }
+
+  /* SEARCH */
+  .search-bar{
+    margin-top:22px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--board);
+    border:1px solid var(--board-edge);
+    border-radius:6px;
+    padding:0 14px;
+    box-shadow: inset 0 1px 0 var(--shadow-2);
+    transition: background 0.25s ease, border-color 0.15s ease;
+  }
+  .search-bar:focus-within{
+    border-color:var(--amber-dim);
+  }
+  .search-bar svg{
+    width:16px;
+    height:16px;
+    color:var(--muted);
+    flex-shrink:0;
+  }
+  .search-bar input{
+    flex:1;
+    min-width:0;
+    background:transparent;
+    border:none;
+    outline:none;
+    padding:13px 0;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    letter-spacing:0.3px;
+    color:var(--text);
+  }
+  .search-bar input::placeholder{
+    color:var(--muted);
+  }
+  .search-clear{
+    flex-shrink:0;
+    width:22px;
+    height:22px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:transparent;
+    border:1px solid var(--board-edge);
+    border-radius:50%;
+    color:var(--muted);
+    font-size:14px;
+    line-height:1;
+    cursor:pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .search-clear[hidden]{
+    display:none;
+  }
+  .search-clear:hover{
+    color:var(--amber);
+    border-color:var(--amber-dim);
+  }
+  .search-meta{
+    margin-top:10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--muted);
+    padding-left:2px;
+  }
+
+  /* PAGE TABS */
+  .pager{
+    display:flex;
+    gap:8px;
+    margin-top:22px;
+    flex-wrap:wrap;
+  }
+  .pager-tab{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--muted);
+    background:var(--board);
+    border:1px solid var(--board-edge);
+    border-radius:6px 6px 0 0;
+    padding:9px 16px;
+    cursor:pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .pager-tab:hover{color:var(--text);}
+  .pager-tab.active{
+    color:var(--amber);
+    border-color:var(--amber-dim);
+    border-bottom:1px solid var(--board);
+    position:relative;
+    top:1px;
+  }
+
+  /* BOARD */
+  .board{
+    background:var(--board);
+    border:1px solid var(--board-edge);
+    border-radius:6px;
+    overflow:hidden;
+    box-shadow: 0 30px 60px -30px var(--shadow), inset 0 1px 0 var(--shadow-2);
+    transition: background 0.25s ease, border-color 0.25s ease;
+  }
+  .page{display:none;}
+  .page.active{display:block;}
+
+  .col-heads{
+    display:grid;
+    grid-template-columns: 56px 1.6fr 1fr 110px 112px;
+    padding:12px 20px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:2px;
+    color:var(--muted);
+    text-transform:uppercase;
+    border-bottom:1px solid var(--board-edge);
+  }
+  .category{
+    padding:14px 20px 4px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:3px;
+    color:var(--teal);
+    text-transform:uppercase;
+    background:linear-gradient(180deg, rgba(86,216,198,0.06), transparent);
+    border-top:1px solid var(--board-edge);
+  }
+  .category:first-of-type{border-top:none;}
+
+  .row{
+    display:grid;
+    grid-template-columns: 56px 1.6fr 1fr 110px 112px;
+    cursor:pointer;
+    align-items:center;
+    padding:13px 20px;
+    text-decoration:none;
+    color:var(--text);
+    border-top:1px solid var(--row-border);
+    transition: background 0.15s ease, color 0.25s ease, border-color 0.25s ease;
+    position:relative;
+  }
+  .row:hover{
+    background:var(--row-hover);
+  }
+  .row:hover .gate{color:var(--amber); border-color:var(--amber);}
+  .row:hover .name{color:var(--amber);}
+
+  .code{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    color:var(--muted);
+    letter-spacing:1px;
+  }
+  .name{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:15px;
+    color:var(--text);
+    transition:color 0.15s ease;
+  }
+  .desc{
+    font-size:12.5px;
+    color:var(--muted);
+    font-family:'Inter', sans-serif;
+  }
+  .status{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:1.5px;
+    color:var(--teal);
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .status::before{
+    content:"";
+    width:6px;height:6px;
+    border-radius:50%;
+    background:var(--teal);
+    box-shadow:0 0 6px var(--teal);
+    flex-shrink:0;
+  }
+  .gate{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:1px;
+    color:var(--muted);
+    border:1px solid var(--board-edge);
+    border-radius:4px;
+    padding:5px 10px;
+    text-align:center;
+    transition: all 0.15s ease;
+    justify-self:end;
+  }
+
+  .gate-wrap{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    justify-self:end;
+  }
+  .gate-wrap .gate{justify-self:auto;}
+  .dl-app{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:24px;
+    height:24px;
+    border-radius:4px;
+    border:1px solid var(--board-edge);
+    color:var(--muted);
+    background:transparent;
+    text-decoration:none;
+    flex-shrink:0;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .dl-app:hover{
+    color:var(--teal);
+    border-color:var(--teal);
+    background:rgba(86,216,198,0.08);
+  }
+  .dl-app svg{width:13px;height:13px;}
+
+  .empty-state{
+    padding:70px 20px;
+    text-align:center;
+    font-family:'IBM Plex Mono', monospace;
+    color:var(--muted);
+  }
+
+  /* split-flap load animation */
+  .flap{
+    display:inline-block;
+    animation: flapin 0.5s steps(6) both;
+  }
+  @keyframes flapin{
+    0%{opacity:0; transform: translateY(-6px) scaleY(0.4); filter:blur(1px);}
+    100%{opacity:1; transform: translateY(0) scaleY(1); filter:blur(0);}
+  }
+
+  footer{
+    max-width:960px;
+    margin:34px auto 0;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--muted);
+    letter-spacing:1px;
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  footer .dot{color:var(--amber);}
+
+  @media (max-width: 640px){
+    .col-heads{display:none;}
+    .row{grid-template-columns: 1fr auto; row-gap:4px;}
+    .code{display:none;}
+    .desc{grid-column:1 / -1; order:3;}
+    .status{order:2;}
+    .gate{order:1; justify-self:end;}
+    .gate-wrap{order:1; justify-self:end;}
+    .name{order:0;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .flap{animation:none;}
+  }
+
+  /* CONTACT / FOOTER STRIP */
+  .contact-strip{
+    margin-top:36px;
+    background:var(--board);
+    border:1px solid var(--board-edge);
+    border-radius:6px;
+    padding:26px 28px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:20px;
+    box-shadow: 0 20px 40px -28px var(--shadow), inset 0 1px 0 var(--shadow-2);
+    transition: background 0.25s ease, border-color 0.25s ease;
+  }
+  .contact-title{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    font-size:18px;
+    letter-spacing:0.5px;
+    color:var(--text);
+  }
+  .contact-title span{color:var(--amber);}
+  .contact-sub{
+    font-size:12.5px;
+    color:var(--muted);
+    margin-top:4px;
+  }
+  .contact-right{
+    text-align:right;
+  }
+  .contact-label{
+    display:block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .contact-mail{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px;
+    color:var(--teal);
+    text-decoration:none;
+    border-bottom:1px solid var(--amber-dim);
+    padding-bottom:2px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .contact-mail:hover{
+    color:var(--amber);
+    border-color:var(--amber);
+  }
+  .copyright{
+    text-align:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    color:var(--muted);
+    letter-spacing:1px;
+    margin-top:18px;
+  }
+
+  @media (max-width: 640px){
+    .contact-strip{flex-direction:column; align-items:flex-start; text-align:left;}
+    .contact-right{text-align:left;}
+  }
+
+  /* AUTH BUTTON + DROPDOWN */
+  .auth-wrap{position:relative; flex-shrink:0;}
+  .avatar-btn{
+    display:flex; align-items:center; justify-content:center;
+    width:32px; height:32px;
+    border-radius:50%;
+    background:var(--amber);
+    color:var(--bg);
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    font-size:12px;
+    border:none;
+    cursor:pointer;
+    letter-spacing:0;
+  }
+  .auth-dropdown{
+    position:absolute;
+    top:calc(100% + 8px);
+    right:0;
+    min-width:200px;
+    background:var(--board);
+    border:1px solid var(--board-edge);
+    border-radius:8px;
+    box-shadow:0 20px 40px -20px var(--shadow);
+    padding:10px;
+    z-index:50;
+    display:none;
+  }
+  .auth-dropdown.open{display:block;}
+  .auth-dropdown .who{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--text);
+    padding:6px 8px 10px;
+    border-bottom:1px solid var(--board-edge);
+    margin-bottom:6px;
+    word-break:break-all;
+  }
+  .auth-dropdown button{
+    width:100%;
+    text-align:left;
+    background:transparent;
+    border:none;
+    color:var(--muted);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:1px;
+    padding:8px;
+    border-radius:5px;
+    cursor:pointer;
+  }
+  .auth-dropdown button:hover{color:var(--red); background:var(--row-hover);}
+
+  /* MODAL */
+  .modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(5,8,11,0.6);
+    backdrop-filter:blur(2px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+    padding:20px;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal-box{
+    width:100%;
+    max-width:360px;
+    background:var(--board);
+    border:1px solid var(--board-edge);
+    border-radius:10px;
+    padding:28px;
+    box-shadow:0 40px 80px -30px var(--shadow);
+  }
+  .modal-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:18px;
+  }
+  .modal-title{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    font-size:16px;
+    color:var(--text);
+  }
+  .modal-close{
+    background:transparent;
+    border:none;
+    color:var(--muted);
+    font-size:18px;
+    cursor:pointer;
+    line-height:1;
+  }
+  .modal-close:hover{color:var(--amber);}
+  .auth-tabs{
+    display:flex;
+    gap:6px;
+    margin-bottom:18px;
+    background:var(--bg);
+    border-radius:6px;
+    padding:3px;
+  }
+  .auth-tab{
+    flex:1;
+    text-align:center;
+    padding:8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--muted);
+    background:transparent;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+  }
+  .auth-tab.active{background:var(--board); color:var(--amber);}
+  .auth-field{
+    display:block;
+    margin-bottom:12px;
+  }
+  .auth-field label{
+    display:block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .auth-field input{
+    width:100%;
+    background:var(--bg);
+    border:1px solid var(--board-edge);
+    border-radius:6px;
+    padding:10px 12px;
+    color:var(--text);
+    font-family:'Inter', sans-serif;
+    font-size:13px;
+    outline:none;
+  }
+  .auth-field input:focus{border-color:var(--amber-dim);}
+  .auth-submit{
+    width:100%;
+    padding:11px;
+    background:var(--amber);
+    color:var(--bg);
+    border:none;
+    border-radius:6px;
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    font-size:12px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    cursor:pointer;
+    margin-top:4px;
+  }
+  .auth-submit:disabled{opacity:0.6; cursor:default;}
+  .auth-divider{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:16px 0;
+    color:var(--muted);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+  }
+  .auth-divider::before, .auth-divider::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:var(--board-edge);
+  }
+  .auth-google{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:10px;
+    background:transparent;
+    border:1px solid var(--board-edge);
+    border-radius:6px;
+    color:var(--text);
+    font-family:'Inter', sans-serif;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .auth-google:hover{border-color:var(--amber-dim);}
+  .auth-error{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    color:var(--red);
+    margin-bottom:10px;
+    display:none;
+  }
+  .auth-error.show{display:block;}
+
+  /* GATE / LOCK OVERLAY */
+  .board-wrap{position:relative;}
+  .board-lock{
+    display:none;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    text-align:left;
+    padding:14px 20px;
+    margin-bottom:10px;
+    background:var(--board);
+    border:1px solid var(--amber-dim);
+    border-radius:6px;
+    flex-wrap:wrap;
+  }
+  .board-wrap.locked .board-lock{display:flex;}
+  .board-wrap.locked .board{filter:none; pointer-events:none; user-select:none;}
+  .board-lock-left{display:flex; align-items:center; gap:12px;}
+  .board-lock svg{width:20px; height:20px; color:var(--amber); flex-shrink:0;}
+  .board-lock-title{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:0.5px;
+    color:var(--text);
+  }
+  .board-lock-sub{
+    font-size:12px;
+    color:var(--muted);
+  }
+  .board-lock-btn{
+    padding:9px 18px;
+    background:var(--amber);
+    color:var(--bg);
+    border:none;
+    border-radius:6px;
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    font-size:11.5px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .icon-btn[disabled]{
+    opacity:0.4;
+    cursor:not-allowed;
+  }
+  .icon-btn[disabled]:hover{
+    color:var(--muted);
+    border-color:var(--board-edge);
+  }
+
+  /* METHOD TABS (Password vs Passcode) */
+  .method-tabs{
+    display:flex;
+    gap:8px;
+    margin-bottom:16px;
+    border-bottom:1px solid var(--board-edge);
+  }
+  .method-tab{
+    padding:8px 4px 10px;
+    background:transparent;
+    border:none;
+    border-bottom:2px solid transparent;
+    color:var(--muted);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    cursor:pointer;
+    margin-bottom:-1px;
+  }
+  .method-tab.active{color:var(--amber); border-bottom-color:var(--amber);}
+  .method-panel{display:none;}
+  .method-panel.active{display:block;}
+  .passcode-hint{
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:14px;
+    line-height:1.5;
+  }
+  .passcode-code-input{
+    letter-spacing:8px;
+    text-align:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:18px;
+  }
+  .passcode-resend{
+    background:transparent;
+    border:none;
+    color:var(--teal);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:1px;
+    text-decoration:underline;
+    cursor:pointer;
+    padding:10px 0 0;
+  }
+  .passcode-resend:disabled{color:var(--muted); text-decoration:none; cursor:default;}
+</style>
+</head>
+<body>
+
+<div class="frame">
+  <div class="header">
+    <div>
+      <div class="brand">Prism vault <span>AI</span></div>
+      <div class="subhead">Assistant Departures &middot; All Gates Open</div>
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" id="downloadBtn" type="button" aria-label="Download this board as an HTML file" title="Download page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+      </button>
+      <div class="auth-wrap" id="authWrap">
+        <button class="icon-btn" id="loginBtn" type="button" aria-label="Log in or sign up" title="Log in">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </button>
+        <div class="auth-dropdown" id="authDropdown">
+          <div class="who" id="authWho"></div>
+          <button type="button" id="logoutBtn">Sign out</button>
+        </div>
+      </div>
+      <button class="switch" id="themeSwitch" type="button" aria-label="Toggle light and dark mode" aria-pressed="false">
+        <span class="knob"></span>
+      </button>
+      <div class="clock" id="clock">
+        --:--:--
+        <small>Karachi &middot; PKT</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="search-bar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <input type="text" id="searchInput" placeholder="Search assistants by name or purpose&hellip;" autocomplete="off" spellcheck="false" aria-label="Search assistants by name or purpose">
+    <button class="search-clear" id="searchClear" type="button" aria-label="Clear search" hidden>&times;</button>
+  </div>
+  <div class="search-meta" id="searchMeta" hidden></div>
+
+  <div class="pager" id="pager"></div>
+
+  <div class="board-wrap" id="boardWrap">
+    <div class="board-lock" id="boardLock">
+      <div class="board-lock-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <div>
+          <div class="board-lock-title">Board is locked</div>
+          <div class="board-lock-sub">Sign in to open or download any assistant.</div>
+        </div>
+      </div>
+      <button class="board-lock-btn" id="boardLockBtn" type="button">Sign In / Sign Up</button>
+    </div>
+    <div class="board" id="board"></div>
+  </div>
+
+  <footer>
+    <span><span class="dot">&#9679;</span> <span id="footerCount">0</span> assistants listed &middot; last synced just now</span>
+    <span>Tap a row to board</span>
+  </footer>
+
+  <div class="contact-strip">
+    <div class="contact-left">
+      <div class="contact-title">Prism Vault <span>AI</span></div>
+      <div class="contact-title">CREATED BY</div>
+      <div class="contact-title">ABSAR HUSSAIN <span>SHAIKH</span></div>
+      <div class="contact-sub">A curated directory of the world's most-used AI tools.</div>
+    </div>
+    <div class="contact-right">
+      <span class="contact-label">Contact / Suggest a tool</span>
+      <a class="contact-mail" href="mailto:Hussain_Shaikh.8@outlook.com">Hussain_Shaikh.8@outlook.com</a>
+    </div>
+  </div>
+  <div class="copyright">&copy; <span id="year"></span> Shaikh AI &middot; All destinations link to their official sites</div>
+
+  <div class="marquee">
+    <span class="marquee-label">On Air</span>
+    <div class="marquee-track">
+      <span class="marquee-content" id="marqueeContent">
+        <span>SHAIKH AI</span> &middot; a curated directory of the world's most-used AI tools <span class="sep">&bull;</span>
+        <span id="marqueeCount">270+</span> assistants across chat, code, image, video, voice, business &amp; more <span class="sep">&bull;</span>
+        now boarding: <span>Claude</span>, <span>ChatGPT</span>, <span>Cursor</span>, <span>Notion</span>, <span>Canva</span> <span class="sep">&bull;</span>
+        created by <span>Absar Hussain Shaikh</span> <span class="sep">&bull;</span>
+        suggest a tool: <span>Hussain_Shaikh.8@outlook.com</span> <span class="sep">&bull;</span>
+      </span>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="authOverlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title">Board <span style="color:var(--amber)">In</span></span>
+      <button class="modal-close" id="authModalClose" type="button" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="method-tabs">
+      <button class="method-tab active" id="methodPassword" type="button">Password</button>
+      <button class="method-tab" id="methodPasscode" type="button">6-Digit Passcode</button>
+    </div>
+
+    <div class="auth-error" id="authError"></div>
+
+    <!-- PASSWORD METHOD -->
+    <div class="method-panel active" id="panelPassword">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tabSignIn" type="button">Sign In</button>
+        <button class="auth-tab" id="tabSignUp" type="button">Sign Up</button>
+      </div>
+
+      <form id="authForm">
+        <label class="auth-field">
+          <label for="authEmail">Email</label>
+          <input type="email" id="authEmail" autocomplete="email" placeholder="you@example.com">
+        </label>
+        <label class="auth-field">
+          <label for="authPassword">Password</label>
+          <input type="password" id="authPassword" autocomplete="current-password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" minlength="6">
+        </label>
+        <button class="auth-submit" id="authSubmit" type="submit">Sign In</button>
+      </form>
+
+      <div class="auth-divider">or</div>
+
+      <button class="auth-google" id="googleSignIn" type="button">
+        <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.66-.22-2.45H12v4.63h6.46c-.28 1.5-1.13 2.77-2.4 3.62v3h3.88c2.27-2.09 3.58-5.17 3.58-8.8Z"/><path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.9l-3.88-3c-1.08.72-2.45 1.15-4.06 1.15-3.13 0-5.78-2.11-6.73-4.95H1.27v3.11C3.24 21.3 7.28 24 12 24Z"/><path fill="#FBBC05" d="M5.27 14.3a7.2 7.2 0 0 1 0-4.6V6.59H1.27a12 12 0 0 0 0 10.82l4-3.11Z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0 7.28 0 3.24 2.7 1.27 6.59l4 3.11C6.22 6.86 8.87 4.75 12 4.75Z"/></svg>
+        Continue with Google
+      </button>
+    </div>
+
+    <!-- PASSCODE METHOD -->
+    <div class="method-panel" id="panelPasscode">
+      <div class="passcode-hint" id="passcodeHint">Enter your email — we'll send a 6-digit code to sign you in.</div>
+
+      <form id="passcodeRequestForm">
+        <label class="auth-field">
+          <label for="passcodeEmail">Email</label>
+          <input type="email" id="passcodeEmail" autocomplete="email" placeholder="you@example.com">
+        </label>
+        <button class="auth-submit" id="passcodeSendBtn" type="submit">Send Code</button>
+      </form>
+
+      <form id="passcodeVerifyForm" style="display:none;">
+        <label class="auth-field">
+          <label for="passcodeCode">6-Digit Code</label>
+          <input type="text" id="passcodeCode" class="passcode-code-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="000000">
+        </label>
+        <button class="auth-submit" id="passcodeVerifyBtn" type="submit">Verify &amp; Sign In</button>
+        <button class="passcode-resend" id="passcodeResendBtn" type="button">Resend code</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   DATA
+   Each tool: [name, url, desc, hasDownloadApp(optional bool)]
+   Each category: { name, letter, tools:[...] }
+   Each terminal: { label, categories:[...] }
+   ========================================================================= */
+const TERMINALS = [
+  { label:"Chat & Research", categories:[
+    { name:"Conversational Assistants", letter:"A", tools:[
+      ["ChatGPT","https://chat.openai.com","General-purpose writing & reasoning",true],
+      ["Claude","https://claude.ai","Long-form writing, reasoning, code",true],
+      ["Gemini","https://gemini.google.com","Google-integrated multimodal assistant"],
+      ["Grok","https://grok.com","Real-time, X-integrated assistant"],
+      ["Copilot","https://copilot.microsoft.com","Microsoft's everyday assistant",true],
+      ["DeepSeek","https://deepseek.com","Open-weight reasoning chat"],
+      ["Urdu AI","https://chatgpt.com/g/g-pE1VKxczG-urdu-ai-official","Urdu-first conversational assistant"],
+      ["Le Chat","https://chat.mistral.ai","Mistral's fast open assistant"],
+      ["Pi","https://pi.ai","Personal, emotionally supportive AI"],
+      ["Poe","https://poe.com","Multi-model chat hub"],
+      ["Character.AI","https://character.ai","Persona-driven roleplay chat"],
+      ["You.com","https://you.com","Search-integrated chat assistant"],
+      ["HuggingChat","https://huggingface.co/chat","Open-source model chat"],
+      ["Meta AI","https://meta.ai","Assistant across Meta's apps"],
+      ["Qwen Chat","https://chat.qwen.ai","Alibaba's multilingual assistant"],
+      ["Kimi","https://kimi.moonshot.cn","Long-context Chinese assistant"],
+      ["ERNIE Bot","https://yiyan.baidu.com","Baidu's conversational assistant"],
+      ["Command (Cohere)","https://cohere.com","Enterprise-focused chat & RAG"],
+      ["Replika","https://replika.com","Companion-style chat AI"],
+      ["MiniMax Chat","https://www.minimax.io","Multilingual chat & agent platform"],
+      ["Doubao","https://www.doubao.com","ByteDance's consumer assistant"],
+      ["Jan","https://jan.ai","Local, private open-source assistant"],
+      ["ChatSonic","https://writesonic.com/chatsonic","Search-integrated chat assistant"],
+      ["Venice AI","https://venice.ai","Privacy-focused uncensored chat"],
+      ["T3 Chat","https://t3.chat","Fast multi-model chat app"],
+      ["Together AI","https://www.together.ai","Open-model inference & chat"],
+      ["Groq","https://groq.com","Ultra-fast LPU-powered chat"],
+      ["AI21 Studio","https://studio.ai21.com","Jurassic language model playground"],
+      ["LibreChat","https://librechat.ai","Open-source multi-model chat UI"],
+      ["Open WebUI","https://openwebui.com","Self-hosted LLM chat interface"],
+      ["Msty","https://msty.app","Local & online model chat client"],
+      ["Kagi Assistant","https://kagi.com/assistant","Search-engine-integrated AI assistant"]
+    ]},
+    { name:"Research & Knowledge", letter:"B", tools:[
+      ["Perplexity","https://www.perplexity.ai","Cited, source-backed research answers",true],
+      ["NotebookLM","https://notebooklm.google","Grounded Q&A over your own documents"],
+      ["Elicit","https://elicit.com","AI research paper assistant"],
+      ["Consensus","https://consensus.app","Search engine for scientific studies"],
+      ["Scite","https://scite.ai","Citation-context analysis"],
+      ["Semantic Scholar","https://www.semanticscholar.org","AI-powered academic search"],
+      ["ResearchRabbit","https://www.researchrabbit.ai","Visual literature discovery"],
+      ["Connected Papers","https://www.connectedpapers.com","Visual paper graph explorer"],
+      ["Explainpaper","https://www.explainpaper.com","Upload & explain dense papers"],
+      ["SciSpace","https://typeset.io","Paper reading & writing copilot"],
+      ["Humata","https://www.humata.ai","Chat with PDFs & documents"],
+      ["Paperpal","https://paperpal.com","Academic writing & submission checks"],
+      ["Litmaps","https://www.litmaps.com","Citation mapping for literature reviews"],
+      ["Iris.ai","https://www.iris.ai","Science-focused research assistant"],
+      ["ChatPDF","https://www.chatpdf.com","Conversational document Q&A"],
+      ["Undermind","https://undermind.ai","AI literature search engine"],
+      ["Paperguide","https://paperguide.ai","AI research paper assistant"],
+      ["Recall","https://www.getrecall.ai","AI knowledge base from web content"],
+      ["Glasp","https://glasp.co","AI-assisted web highlighting & notes"],
+      ["Afforai","https://afforai.com","AI research assistant & citation manager"],
+      ["Scholarcy","https://www.scholarcy.com","Article summarization for researchers"],
+      ["Zeta Alpha","https://zeta-alpha.com","AI research discovery platform"],
+      ["Ai2 Scholar QA","https://scholarqa.allen.ai","AI research Q&A by Allen Institute"]
+    ]}
+  ]},
+  { label:"Coding & Dev", categories:[
+    { name:"Coding & Development", letter:"C", tools:[
+      ["Claude Code","https://claude.ai/code","Agentic coding in your terminal"],
+      ["Cursor","https://cursor.sh","AI-native code editor",true],
+      ["GitHub Copilot","https://github.com/features/copilot","In-IDE pair programmer"],
+      ["Replit","https://replit.com","Build & deploy apps in the browser"],
+      ["v0","https://v0.dev","Prompt-to-UI component generator"],
+      ["Windsurf","https://windsurf.com","Agentic IDE by Codeium"],
+      ["Tabnine","https://www.tabnine.com","Privacy-focused code completion"],
+      ["Amazon Q Developer","https://aws.amazon.com/q/developer","AWS-integrated coding assistant"],
+      ["Sourcegraph Cody","https://sourcegraph.com/cody","Codebase-aware AI assistant"],
+      ["JetBrains AI Assistant","https://www.jetbrains.com/ai","IDE-native coding assistant"],
+      ["Continue.dev","https://www.continue.dev","Open-source IDE copilot"],
+      ["Bolt.new","https://bolt.new","Full-stack apps from a prompt"],
+      ["Lovable","https://lovable.dev","Prompt-to-web-app builder"],
+      ["Cline","https://cline.bot","Autonomous coding agent for VS Code"],
+      ["Aider","https://aider.chat","Terminal-based pair programming"],
+      ["Devin","https://devin.ai","Autonomous software engineer"],
+      ["Blackbox AI","https://www.blackbox.ai","Code search & generation"],
+      ["Phind","https://www.phind.com","Developer-focused search & answers"],
+      ["Warp","https://www.warp.dev","AI-powered terminal"],
+      ["Zed","https://zed.dev","High-performance AI-native editor"],
+      ["Supermaven","https://supermaven.com","Fast, low-latency code completion"],
+      ["Magic","https://magic.dev","Frontier coding model lab"],
+      ["Poolside","https://poolside.ai","Enterprise coding foundation model"],
+      ["Codeium","https://codeium.com","Free AI code completion"],
+      ["Qodo","https://www.qodo.ai","AI code review & test generation"],
+      ["Pieces for Developers","https://pieces.app","AI code snippet manager"],
+      ["Refact.ai","https://refact.ai","Open-source AI coding assistant"],
+      ["Codiga","https://www.codiga.io","Automated code review AI"],
+      ["Mintlify","https://mintlify.com","AI documentation generator"],
+      ["Swimm","https://swimm.io","AI-assisted code documentation"],
+      ["Trae","https://www.trae.ai","AI-native IDE by ByteDance"],
+      ["Zencoder","https://zencoder.ai","AI coding agent for IDEs"],
+      ["Sweep AI","https://sweep.dev","AI bug-fixing agent for GitHub"],
+      ["Cosine","https://cosine.sh","Autonomous software engineering agent"],
+      ["Factory AI","https://www.factory.ai","Autonomous software agents"],
+      ["Augment Code","https://www.augmentcode.com","AI coding assistant for large codebases"],
+      ["Bito","https://bito.ai","AI code review & chat assistant"],
+      ["CodeRabbit","https://coderabbit.ai","AI pull-request review assistant"]
+    ]},
+    { name:"Agent Frameworks & Local LLMs", letter:"D", tools:[
+      ["LangChain","https://www.langchain.com","Framework for building LLM apps"],
+      ["LangGraph","https://www.langchain.com/langgraph","Stateful multi-agent orchestration"],
+      ["Flowise","https://flowiseai.com","Drag-and-drop LLM flow builder"],
+      ["Dify","https://dify.ai","Low-code AI app & agent platform"],
+      ["CrewAI","https://www.crewai.com","Multi-agent collaboration framework"],
+      ["AutoGPT","https://agpt.co","Autonomous task-completion agent"],
+      ["AutoGen","https://microsoft.github.io/autogen","Microsoft's multi-agent framework"],
+      ["Semantic Kernel","https://github.com/microsoft/semantic-kernel","SDK for orchestrating AI plugins"],
+      ["Vercel AI SDK","https://sdk.vercel.ai","Toolkit for AI-powered web apps"],
+      ["Ollama","https://ollama.com","Run open models locally"],
+      ["LM Studio","https://lmstudio.ai","Local LLM desktop playground"],
+      ["GPT4All","https://www.nomic.ai/gpt4all","Private, offline chatbot runner"],
+      ["Hugging Face Hub","https://huggingface.co","Open models, datasets & spaces"],
+      ["LlamaIndex","https://www.llamaindex.ai","Data framework for LLM apps"],
+      ["AgentGPT","https://agentgpt.reworkd.ai","Browser-based autonomous agents"],
+      ["Haystack","https://haystack.deepset.ai","Open-source RAG framework"],
+      ["llamafile","https://github.com/Mozilla-Ocho/llamafile","Single-file local LLM runner"],
+      ["vLLM","https://github.com/vllm-project/vllm","High-throughput LLM inference engine"],
+      ["Text Generation Inference","https://github.com/huggingface/text-generation-inference","Hugging Face's LLM serving toolkit"],
+      ["PrivateGPT","https://privategpt.dev","Fully private document Q&A"],
+      ["Superagent","https://superagent.sh","Open-source AI agent framework"],
+      ["E2B","https://e2b.dev","Secure sandboxes for AI agents"],
+      ["Composio","https://composio.dev","Tool integration platform for AI agents"],
+      ["Griptape","https://www.griptape.ai","Framework for building AI agents"],
+      ["Letta","https://www.letta.com","Stateful AI agent framework with memory"]
+    ]}
+  ]},
+  { label:"Creative Media", categories:[
+    { name:"Image Generation", letter:"E", tools:[
+      ["Midjourney","https://www.midjourney.com","Cinematic, artistic image generation"],
+      ["Adobe Firefly","https://firefly.adobe.com","Commercially-safe generative images"],
+      ["Leonardo AI","https://leonardo.ai","Fine-tuned models for game & concept art"],
+      ["Ideogram","https://ideogram.ai","Image generation with reliable text"],
+      ["DreamStudio","https://dreamstudio.ai","Stability AI's image studio"],
+      ["Playground","https://playground.com","Free-form creative image canvas"],
+      ["FLUX","https://blackforestlabs.ai","High-fidelity open image models"],
+      ["Recraft","https://www.recraft.ai","Vector, icon & brand-consistent art"],
+      ["Krea","https://www.krea.ai","Real-time generative design"],
+      ["NightCafe","https://creator.nightcafe.studio","Community-driven art generator"],
+      ["Artbreeder","https://www.artbreeder.com","Genetic-style image blending"],
+      ["Lexica","https://lexica.art","Prompt search & image generation"],
+      ["Freepik AI","https://www.freepik.com/ai","Stock-integrated image generator"],
+      ["Google ImageFX","https://labs.google/fx/tools/image-fx","Google's Imagen-powered generator"],
+      ["Civitai","https://civitai.com","Community model & image hub"],
+      ["Tensor.art","https://tensor.art","Free online Stable Diffusion studio"],
+      ["Draw Things","https://drawthings.ai","On-device Stable Diffusion app"],
+      ["Fotor","https://www.fotor.com","AI photo editing & generation"],
+      ["Magnific AI","https://magnific.ai","AI image upscaling & enhancement"],
+      ["ClipDrop","https://clipdrop.co","Stability's AI image editing toolkit"],
+      ["Vheer","https://vheer.com","Free AI image & video generator"],
+      ["PixAI","https://pixai.art","Anime-style AI image generation"],
+      ["SeaArt","https://www.seaart.ai","Community AI art generation platform"],
+      ["Pixlr","https://pixlr.com","AI photo editing suite"],
+      ["Remove.bg","https://www.remove.bg","AI background removal"],
+      ["Photoroom","https://www.photoroom.com","AI product photo editing"],
+      ["Let's Enhance","https://letsenhance.io","AI image upscaling service"],
+      ["Deep Dream Generator","https://deepdreamgenerator.com","Neural-style art generation"],
+      ["Prisma","https://prisma-ai.com","AI photo art filters"],
+      ["WOMBO Dream","https://www.wombo.ai/dream","Mobile AI art generator"]
+    ]},
+    { name:"Video Generation", letter:"F", tools:[
+      ["Sora","https://sora.chatgpt.com","OpenAI's text-to-video generator"],
+      ["Veo","https://labs.google/flow","Google's realistic text-to-video model"],
+      ["Runway","https://runwayml.com","Text & image-to-video generation"],
+      ["Creatify","https://creatify.ai","Text & prompt-to-video generation"],
+      ["Kling AI","https://klingai.com","High-fidelity cinematic video generation"],
+      ["Pika","https://pika.art","Fast, stylized video generation"],
+      ["HeyGen","https://www.heygen.com","AI avatar & spokesperson video"],
+      ["Synthesia","https://www.synthesia.io","Script-to-video business content"],
+      ["Luma Dream Machine","https://lumalabs.ai/dream-machine","Realistic motion from a prompt"],
+      ["Pictory","https://pictory.ai","Long-form video into short clips"],
+      ["InVideo","https://invideo.io","Text-to-video for marketing content"],
+      ["Descript","https://www.descript.com","Edit video like a text document"],
+      ["D-ID","https://www.d-id.com","Talking-photo avatar generation"],
+      ["Colossyan","https://www.colossyan.com","Training-video avatar generation"],
+      ["Hailuo AI","https://hailuoai.video","MiniMax's cinematic video model"],
+      ["Vidu","https://www.vidu.com","Multi-shot AI video generation"],
+      ["Haiper","https://haiper.ai","Fast, expressive video generation"],
+      ["LTX Studio","https://ltx.studio","Storyboard-to-video production suite"],
+      ["Genmo","https://www.genmo.ai","Open text-to-video model"],
+      ["Higgsfield","https://higgsfield.ai","AI video generation platform"],
+      ["Viggle AI","https://viggle.ai","AI character motion video"],
+      ["Filmora AI","https://filmora.wondershare.com","AI-assisted video editing"],
+      ["CapCut","https://www.capcut.com","AI-powered short-video editing"],
+      ["Clipchamp","https://www.clipchamp.com","Microsoft's AI video editor"],
+      ["Wondershare Virbo","https://virbo.wondershare.com","AI avatar video maker"],
+      ["Fliki","https://fliki.ai","Text-to-video with AI voices"],
+      ["Steve AI","https://www.steve.ai","Text/audio-to-video generator"],
+      ["Renderforest","https://www.renderforest.com","AI video & branding maker"]
+    ]},
+    { name:"Music & Voice", letter:"G", tools:[
+      ["Suno","https://suno.com","Full song generation from a prompt"],
+      ["Udio","https://www.udio.com","High-quality AI music generation"],
+      ["ElevenLabs","https://elevenlabs.io","Realistic voice cloning & text-to-speech",true],
+      ["Murf","https://murf.ai","Studio-quality AI voiceovers"],
+      ["Play.ht","https://play.ht","Ultra-realistic text-to-speech API"],
+      ["Resemble AI","https://www.resemble.ai","Custom voice cloning platform"],
+      ["WellSaid Labs","https://wellsaidlabs.com","Enterprise voiceover generation"],
+      ["Speechify","https://speechify.com","Text-to-speech reading assistant"],
+      ["Podcastle","https://podcastle.ai","AI-powered podcast studio"],
+      ["Adobe Podcast","https://podcast.adobe.com","Studio-quality audio enhancement"],
+      ["AIVA","https://www.aiva.ai","AI composer for soundtracks"],
+      ["Boomy","https://boomy.com","Instant song creation for anyone"],
+      ["LALAL.AI","https://www.lalal.ai","Stem splitting & vocal removal"],
+      ["Riffusion","https://www.riffusion.com","Real-time generative music"],
+      ["Beatoven.ai","https://www.beatoven.ai","Mood-based royalty-free music"],
+      ["Soundraw","https://soundraw.io","AI royalty-free music generator"],
+      ["Mubert","https://mubert.com","Generative royalty-free music API"],
+      ["Voicemod","https://www.voicemod.net","Real-time AI voice changer"],
+      ["Respeecher","https://www.respeecher.com","AI voice conversion for media"],
+      ["Sonauto","https://sonauto.ai","AI music generation with lyrics"],
+      ["Hume AI","https://www.hume.ai","Emotionally expressive voice AI"],
+      ["Cartesia","https://cartesia.ai","Real-time low-latency voice AI"],
+      ["Kits AI","https://kits.ai","AI voice cloning for musicians"]
+    ]}
+  ]},
+  { label:"Design & Productivity", categories:[
+    { name:"Design & Docs", letter:"H", tools:[
+      ["Canva","https://www.canva.com","AI-assisted graphics & slide design",true],
+      ["Gamma","https://gamma.app","Notes turned into decks & docs"],
+      ["Notion AI","https://www.notion.so","AI built into notes & workspace",true],
+      ["Framer","https://www.framer.com","AI-assisted website building"],
+      ["Uizard","https://uizard.io","Sketch-to-UI design generation"],
+      ["Galileo AI","https://www.usegalileo.ai","Prompt-to-editable UI design"],
+      ["Beautiful.ai","https://www.beautiful.ai","Auto-designed presentations"],
+      ["Tome","https://tome.app","AI-native storytelling decks"],
+      ["Designs.ai","https://designs.ai","All-in-one design generation suite"],
+      ["Visily","https://www.visily.ai","Screenshot-to-wireframe design"],
+      ["Relume","https://www.relume.io","AI sitemap & wireframe builder"],
+      ["Durable","https://durable.co","Instant AI website builder"],
+      ["Adobe Express","https://www.adobe.com/express","AI-assisted quick design"],
+      ["Looka","https://looka.com","AI logo & brand design"],
+      ["Brandmark","https://brandmark.io","AI logo generator"],
+      ["Microsoft Designer","https://designer.microsoft.com","AI graphic design tool"],
+      ["Khroma","https://www.khroma.co","AI color palette generator"],
+      ["Vectorizer.ai","https://vectorizer.ai","AI raster-to-vector converter"],
+      ["Figma AI","https://www.figma.com","AI features in design & prototyping"],
+      ["Whimsical AI","https://whimsical.com","AI-assisted flowcharts & wireframes"]
+    ]},
+    { name:"Writing & Productivity", letter:"I", tools:[
+      ["Grammarly","https://www.grammarly.com","Tone, clarity & grammar rewrites",true],
+      ["Jasper","https://www.jasper.ai","On-brand marketing copy at scale"],
+      ["Copy.ai","https://www.copy.ai","Go-to-market content generation"],
+      ["Writesonic","https://writesonic.com","SEO articles & ad copy"],
+      ["Sudowrite","https://www.sudowrite.com","Fiction & story-writing partner"],
+      ["QuillBot","https://quillbot.com","Paraphrasing & grammar checking"],
+      ["Wordtune","https://www.wordtune.com","Sentence-level rewriting assistant"],
+      ["Rytr","https://rytr.me","Short-form AI copywriting"],
+      ["ProWritingAid","https://prowritingaid.com","In-depth style & grammar editor"],
+      ["Hemingway Editor","https://hemingwayapp.com","Readability & clarity scoring"],
+      ["Lex","https://lex.page","AI-native long-form writing doc"],
+      ["Writer","https://writer.com","Enterprise brand-voice writing platform"],
+      ["Simplified","https://simplified.com","All-in-one content & design suite"],
+      ["Jenni AI","https://jenni.ai","AI academic writing assistant"],
+      ["Compose AI","https://www.compose.ai","AI writing autocomplete"],
+      ["INK Editor","https://inkforall.com","SEO-focused AI writing"],
+      ["Wordsmith","https://automatedinsights.com","Automated narrative generation"],
+      ["Article Forge","https://www.articleforge.com","Automated long-form article generation"],
+      ["Nichesss","https://nichesss.com","AI copy & content idea generator"],
+      ["Scalenut","https://www.scalenut.com","AI SEO content platform"],
+      ["Hypotenuse AI","https://www.hypotenuse.ai","AI e-commerce & content writing"]
+    ]},
+    { name:"Meetings & Notes", letter:"J", tools:[
+      ["Fathom","https://fathom.video","Meeting recorder & action items"],
+      ["Granola","https://www.granola.ai","Notes that merge with what was said"],
+      ["Otter.ai","https://otter.ai","Live meeting transcription"],
+      ["Fireflies.ai","https://fireflies.ai","Meeting notes & conversation search"],
+      ["tl;dv","https://tldv.io","Meeting recording & highlight reels"],
+      ["Krisp","https://krisp.ai","Noise cancellation & meeting notes"],
+      ["Read AI","https://www.read.ai","Meeting summaries & sentiment"],
+      ["Rewind","https://www.rewind.ai","Searchable memory of your day"],
+      ["Avoma","https://www.avoma.com","Conversation intelligence for revenue teams"],
+      ["Supernormal","https://supernormal.com","Automated meeting notes"],
+      ["MeetGeek","https://meetgeek.ai","Meeting recording & analytics"],
+      ["Sembly AI","https://www.sembly.ai","AI meeting assistant & notes"],
+      ["Fellow","https://fellow.app","AI meeting notes & agendas"],
+      ["Grain","https://grain.com","AI meeting highlight reels"],
+      ["Sana","https://sana.ai","AI-powered meetings & learning platform"],
+      ["Circleback","https://circleback.ai","Automated meeting notes & tasks"],
+      ["Noty.ai","https://noty.ai","AI meeting summarization"]
+    ]},
+    { name:"Presentations & Email", letter:"K", tools:[
+      ["SlidesAI","https://www.slidesai.io","Text-to-slides for Google Slides"],
+      ["Plus AI","https://plusdocs.com","AI slide generation for teams"],
+      ["Decktopus","https://www.decktopus.com","Instant presentation builder"],
+      ["Genially","https://genially.com","Interactive presentation design"],
+      ["Visme","https://www.visme.co","AI-assisted visual content design"],
+      ["Superhuman","https://superhuman.com","Fast, AI-triaged email client"],
+      ["Shortwave","https://www.shortwave.com","AI-organized email inbox"],
+      ["SaneBox","https://www.sanebox.com","Automatic inbox prioritization"],
+      ["Lavender","https://www.lavender.ai","AI sales-email coaching"],
+      ["Fyxer","https://fyxer.com","Auto-drafted email replies"],
+      ["Pitch","https://pitch.com","Collaborative AI-assisted presentations"],
+      ["Prezi AI","https://prezi.com","AI-assisted zooming presentations"],
+      ["Presentations.ai","https://presentations.ai","AI slide deck generator"],
+      ["Missive","https://missive.app","AI-assisted team email client"],
+      ["Boomerang","https://www.boomeranggmail.com","AI email scheduling & assistant"],
+      ["EmailTree","https://www.emailtree.ai","AI email automation"]
+    ]},
+    { name:"Resume & Career", letter:"L", tools:[
+      ["Teal","https://www.tealhq.com","Resume builder & job tracker"],
+      ["Kickresume","https://www.kickresume.com","AI resume & cover letter writer"],
+      ["Rezi","https://www.rezi.ai","ATS-optimized resume builder"],
+      ["Zety","https://zety.com","Guided resume & CV creation"],
+      ["Enhancv","https://enhancv.com","Visual, modern resume design"],
+      ["Careerflow","https://www.careerflow.ai","LinkedIn & job-search optimizer"],
+      ["Jobscan","https://www.jobscan.co","AI resume-to-job matching"],
+      ["Huntr","https://huntr.co","AI job application tracker"],
+      ["Simplify","https://simplify.jobs","AI job application autofill"],
+      ["Final Round AI","https://www.finalroundai.com","AI interview practice assistant"]
+    ]},
+    { name:"Personal Productivity & Notes", letter:"Y", tools:[
+      ["Mem","https://mem.ai","AI-native note-taking app"],
+      ["Reflect","https://reflect.app","Networked notes with AI"],
+      ["Obsidian","https://obsidian.md","Local-first linked notes with AI plugins"],
+      ["Roam Research","https://roamresearch.com","Networked thought tool"],
+      ["Craft","https://www.craft.do","Beautiful AI-assisted docs"],
+      ["Coda","https://coda.io","AI-powered docs & apps"],
+      ["Taskade","https://www.taskade.com","AI task & workflow management"],
+      ["ClickUp AI","https://clickup.com","AI project management assistant"],
+      ["Todoist","https://todoist.com","AI-assisted task manager"],
+      ["Sunsama","https://www.sunsama.com","Daily planning assistant"],
+      ["Akiflow","https://akiflow.com","Unified task & calendar planner"],
+      ["Reclaim.ai","https://reclaim.ai","AI calendar scheduling"],
+      ["Clockwise","https://www.getclockwise.com","AI focus-time scheduling"],
+      ["Mem0","https://mem0.ai","Memory layer for personalized AI apps"],
+      ["Notability","https://gingerlabs.com","AI-assisted handwritten note-taking"]
+    ]}
+  ]},
+  { label:"Business & Ops", categories:[
+    { name:"Automation & Agents", letter:"M", tools:[
+      ["n8n","https://n8n.io","Self-hosted AI workflow automation"],
+      ["Zapier","https://zapier.com","Connect apps into automated workflows"],
+      ["Make","https://www.make.com","Visual workflow automation builder"],
+      ["Relevance AI","https://relevanceai.com","Build & deploy AI agent teams"],
+      ["Lindy","https://www.lindy.ai","No-code AI agent builder"],
+      ["Gumloop","https://www.gumloop.com","Drag-and-drop AI automation"],
+      ["Bardeen","https://www.bardeen.ai","Browser-based workflow automation"],
+      ["UiPath","https://www.uipath.com","Enterprise robotic process automation"],
+      ["Automation Anywhere","https://www.automationanywhere.com","Agentic process automation platform"],
+      ["Motion","https://www.usemotion.com","AI-planned calendars & task lists"],
+      ["Cassidy","https://www.cassidyai.com","Company-knowledge-grounded agents"],
+      ["Pipedream","https://pipedream.com","Developer workflow automation with AI"],
+      ["Workato","https://www.workato.com","Enterprise AI automation platform"],
+      ["Levity","https://levity.ai","No-code AI workflow automation"],
+      ["Vellum","https://www.vellum.ai","AI workflow & prompt engineering platform"],
+      ["Stack AI","https://www.stack-ai.com","No-code AI agent builder"],
+      ["Beam AI","https://beam.ai","Enterprise AI agent platform"],
+      ["MultiOn","https://www.multion.ai","AI web-browsing agent"],
+      ["MindPal","https://mindpal.io","No-code AI agent builder"]
+    ]},
+    { name:"Marketing & SEO", letter:"N", tools:[
+      ["Surfer SEO","https://surferseo.com","Data-driven on-page SEO"],
+      ["Clearscope","https://www.clearscope.io","Content optimization for search"],
+      ["MarketMuse","https://www.marketmuse.com","AI content strategy & briefs"],
+      ["Frase","https://www.frase.io","SEO content research & drafting"],
+      ["AdCreative.ai","https://www.adcreative.ai","AI-generated ad creatives"],
+      ["Anyword","https://anyword.com","Performance-predicting copywriting"],
+      ["Semrush","https://www.semrush.com","AI-assisted SEO & marketing suite"],
+      ["Copysmith","https://copysmith.ai","E-commerce & catalog copy at scale"],
+      ["Ahrefs","https://ahrefs.com","AI-assisted SEO toolkit"],
+      ["Postwise","https://postwise.ai","AI Twitter/X content generator"],
+      ["NeuronWriter","https://neuronwriter.com","AI content optimization for SEO"],
+      ["Outranking","https://outranking.io","AI SEO content workflow"],
+      ["Content at Scale","https://contentatscale.ai","AI long-form SEO content"],
+      ["GrowthBar","https://www.growthbarseo.com","AI SEO & content tool"]
+    ]},
+    { name:"Sales & CRM", letter:"O", tools:[
+      ["HubSpot Breeze","https://www.hubspot.com/artificial-intelligence","AI across CRM & marketing"],
+      ["Salesforce Einstein","https://www.salesforce.com/einstein","Predictive CRM intelligence"],
+      ["Apollo.io","https://www.apollo.io","AI-assisted prospecting & outreach"],
+      ["Gong","https://www.gong.io","Revenue conversation intelligence"],
+      ["Clari","https://www.clari.com","Forecasting & deal-risk AI"],
+      ["Chorus","https://www.chorus.ai","Call & meeting analytics for sales"],
+      ["Regie.ai","https://www.regie.ai","AI sales content & sequencing"],
+      ["Clay","https://www.clay.com","AI-enriched go-to-market data"],
+      ["Outreach","https://www.outreach.io","AI sales engagement platform"],
+      ["Salesloft","https://salesloft.com","AI revenue workflow platform"],
+      ["People.ai","https://people.ai","AI revenue intelligence"],
+      ["Zoho Zia","https://www.zoho.com/zia","AI assistant across Zoho CRM"],
+      ["Attention","https://www.attentioncrm.com","AI sales call coaching"],
+      ["Warmly","https://warmly.ai","AI website visitor identification for sales"]
+    ]},
+    { name:"Customer Support", letter:"P", tools:[
+      ["Intercom Fin","https://www.intercom.com/fin","AI customer-service agent"],
+      ["Zendesk AI","https://www.zendesk.com/ai","AI-assisted support suite"],
+      ["Ada","https://www.ada.cx","No-code support automation"],
+      ["Drift","https://www.drift.com","Conversational marketing & sales bots"],
+      ["Freshdesk Freddy","https://www.freshworks.com/freshdesk","AI-assisted helpdesk"],
+      ["Tidio","https://www.tidio.com","Live chat & support chatbots"],
+      ["Forethought","https://forethought.ai","AI triage for support tickets"],
+      ["Kustomer","https://www.kustomer.com","AI-native customer service platform"],
+      ["Gladly","https://www.gladly.com","AI-assisted customer service platform"],
+      ["Aisera","https://aisera.com","AI service management agent"],
+      ["Yellow.ai","https://yellow.ai","Enterprise conversational AI"],
+      ["Decagon","https://decagon.ai","AI customer support agents"],
+      ["Gorgias","https://www.gorgias.com","AI helpdesk for e-commerce"],
+      ["Crisp","https://crisp.chat","AI-assisted live chat & support"]
+    ]},
+    { name:"HR, Legal & Finance", letter:"Q", tools:[
+      ["HireVue","https://www.hirevue.com","AI-assisted video interviewing"],
+      ["Paradox","https://www.paradox.ai","Conversational recruiting assistant"],
+      ["Textio","https://textio.com","Bias-aware job-post writing"],
+      ["Eightfold AI","https://eightfold.ai","Talent intelligence platform"],
+      ["Harvey","https://www.harvey.ai","AI for legal research & drafting"],
+      ["CoCounsel","https://casetext.com/cocounsel","Legal AI assistant by Thomson Reuters"],
+      ["Spellbook","https://www.spellbook.legal","Contract drafting & review AI"],
+      ["Ironclad AI","https://ironcladapp.com","Contract lifecycle automation"],
+      ["DoNotPay","https://donotpay.com","Consumer legal-help chatbot"],
+      ["AlphaSense","https://www.alpha-sense.com","Market intelligence search"],
+      ["Vic.ai","https://www.vic.ai","Autonomous invoice processing"],
+      ["Ramp","https://ramp.com","AI-assisted expense & spend management"],
+      ["Lattice","https://lattice.com","AI-assisted performance management"],
+      ["Workday","https://www.workday.com","AI across HR & finance systems"],
+      ["Beamery","https://beamery.com","AI talent lifecycle management"],
+      ["Fetcher","https://fetcher.ai","AI recruiting sourcing tool"],
+      ["Robin AI","https://www.robinai.com","AI contract review assistant"],
+      ["Luminance","https://www.luminance.com","AI legal document analysis"],
+      ["Klarity","https://www.klarity.ai","AI contract & document review"],
+      ["Brex","https://www.brex.com","AI-assisted corporate spend management"]
+    ]},
+    { name:"Data, Analytics & Detection", letter:"R", tools:[
+      ["Julius AI","https://julius.ai","Chat-based data analysis"],
+      ["Akkio","https://www.akkio.com","No-code predictive modeling"],
+      ["DataRobot","https://www.datarobot.com","Enterprise AutoML platform"],
+      ["MonkeyLearn","https://monkeylearn.com","Text-analysis API & tools"],
+      ["ThoughtSpot","https://www.thoughtspot.com","AI-driven business analytics"],
+      ["Hex","https://hex.tech","Collaborative data notebooks"],
+      ["GPTZero","https://gptzero.me","AI-generated text detection"],
+      ["Originality.ai","https://originality.ai","Content authenticity checker"],
+      ["Copyleaks","https://copyleaks.com","Plagiarism & AI-content detection"],
+      ["Winston AI","https://gowinston.ai","AI-detection for educators & publishers"],
+      ["Tableau","https://www.tableau.com","AI-assisted business analytics"],
+      ["Sisense","https://www.sisense.com","AI-embedded analytics platform"],
+      ["Obviously AI","https://www.obviously.ai","No-code predictive analytics"],
+      ["MindsDB","https://mindsdb.com","AI layer for databases"],
+      ["Rows","https://rows.com","AI-assisted spreadsheet platform"],
+      ["Formula Bot","https://formulabot.com","AI spreadsheet formula generator"],
+      ["Sourcetable","https://sourcetable.com","AI spreadsheet & data analysis"],
+      ["Turnitin","https://www.turnitin.com","Academic AI-content detection"]
+    ]},
+    { name:"Finance & Investing", letter:"Z", tools:[
+      ["Wealthfront","https://www.wealthfront.com","AI-assisted robo-advisor investing"],
+      ["Betterment","https://www.betterment.com","Automated investing & planning"],
+      ["Copilot Money","https://copilot.money","AI personal finance tracker"],
+      ["Cleo","https://web.meetcleo.com","AI budgeting chat assistant"],
+      ["Origin","https://useorigin.com","AI financial planning platform"],
+      ["Composer","https://www.composer.trade","AI-assisted trading strategies"],
+      ["Danelfin","https://danelfin.com","AI stock scoring platform"],
+      ["Trade Ideas","https://www.trade-ideas.com","AI-powered stock scanning"],
+      ["Kavout","https://www.kavout.com","AI investment research"],
+      ["Intuit Assist","https://www.intuit.com","AI across QuickBooks & TurboTax"],
+      ["Pilot.com","https://pilot.com","AI-assisted bookkeeping"],
+      ["Bloomberg Terminal","https://www.bloomberg.com/professional/product/bloomberg-terminal","AI-assisted market intelligence"]
+    ]},
+    { name:"Social Media & Content", letter:"AA", tools:[
+      ["Buffer","https://buffer.com","AI social post drafting"],
+      ["Hootsuite OwlyWriter","https://www.hootsuite.com","AI social caption generator"],
+      ["Vista Social","https://vistasocial.com","AI social media management"],
+      ["Predis.ai","https://predis.ai","AI social content generator"],
+      ["Ocoya","https://www.ocoya.com","AI content & scheduling suite"],
+      ["Repurpose.io","https://repurpose.io","Cross-platform content repurposing"],
+      ["Opus Clip","https://www.opus.pro","AI long-video-to-clips generator"],
+      ["Vidyo.ai","https://vidyo.ai","AI video repurposing tool"],
+      ["Munch","https://www.getmunch.com","AI clip generation for social"],
+      ["Later","https://later.com","AI-assisted social scheduling"],
+      ["Brand24","https://brand24.com","AI social listening & monitoring"],
+      ["Flick","https://flick.social","AI hashtag & caption assistant"]
+    ]},
+    { name:"Cybersecurity AI", letter:"AB", tools:[
+      ["Darktrace","https://darktrace.com","AI-driven threat detection"],
+      ["CrowdStrike Charlotte AI","https://www.crowdstrike.com","AI security analyst assistant"],
+      ["SentinelOne Purple AI","https://www.sentinelone.com","AI-powered threat hunting"],
+      ["Microsoft Security Copilot","https://www.microsoft.com/security/business/ai-machine-learning/microsoft-security-copilot","AI-assisted security operations"],
+      ["Wiz","https://www.wiz.io","AI-assisted cloud security"],
+      ["Abnormal Security","https://abnormalsecurity.com","AI email threat detection"],
+      ["Vectra AI","https://www.vectra.ai","AI network threat detection"],
+      ["Recorded Future","https://www.recordedfuture.com","AI threat intelligence platform"],
+      ["Snyk","https://snyk.io","AI-assisted code vulnerability scanning"],
+      ["Semgrep","https://semgrep.dev","AI-assisted static code analysis"],
+      ["HiddenLayer","https://hiddenlayer.com","AI model security platform"],
+      ["Lakera","https://www.lakera.ai","AI application security guardrails"]
+    ]}
+  ]},
+  { label:"Specialized", categories:[
+    { name:"Education", letter:"S", tools:[
+      ["Khanmigo","https://www.khanacademy.org/khan-labs","Khan Academy's AI tutor"],
+      ["Duolingo Max","https://www.duolingo.com","AI-powered language practice"],
+      ["Socratic","https://socratic.org","Homework help by Google"],
+      ["Coursera Coach","https://www.coursera.org","AI learning assistant for courses"],
+      ["Speak","https://www.speak.com","AI conversation-practice tutor"],
+      ["Quizlet","https://quizlet.com","AI-generated study sets & tutoring"],
+      ["Photomath","https://photomath.com","AI-powered math problem solver"],
+      ["Gauth","https://www.gauthmath.com","AI homework help app"],
+      ["Course Hero","https://www.coursehero.com","AI study assistant"],
+      ["Numerade","https://www.numerade.com","AI-powered STEM video answers"],
+      ["Curipod","https://curipod.com","AI-assisted lesson creation"],
+      ["MagicSchool AI","https://www.magicschool.ai","AI tools for teachers"]
+    ]},
+    { name:"Healthcare", letter:"T", tools:[
+      ["Nuance DAX","https://www.nuance.com/healthcare/dragon-ai-clinical-solutions/dax-copilot.html","Ambient clinical documentation"],
+      ["Ambience Healthcare","https://www.ambiencehealthcare.com","AI medical scribe platform"],
+      ["Abridge","https://www.abridge.com","Clinical conversation summarization"],
+      ["Suki","https://www.suki.ai","Voice AI assistant for clinicians"],
+      ["Hippocratic AI","https://www.hippocraticai.com","Patient-facing healthcare AI"],
+      ["Nabla","https://www.nabla.com","AI copilot for clinicians"],
+      ["Woebot Health","https://woebothealth.com","AI mental health chatbot"],
+      ["K Health","https://www.khealth.com","AI-assisted symptom checker"],
+      ["Corti","https://www.corti.ai","AI clinical decision support"],
+      ["Tempus AI","https://www.tempus.com","AI precision medicine platform"],
+      ["Viz.ai","https://www.viz.ai","AI stroke & disease detection imaging"]
+    ]},
+    { name:"3D & Gaming", letter:"U", tools:[
+      ["Scenario","https://www.scenario.com","Game-ready AI asset generation"],
+      ["Meshy","https://www.meshy.ai","Text/image-to-3D model generation"],
+      ["Luma AI","https://lumalabs.ai","3D capture & neural rendering"],
+      ["Kaedim","https://www.kaedim3d.com","2D-to-3D model conversion"],
+      ["Rosebud AI","https://www.rosebud.ai","AI-assisted game creation"],
+      ["Inworld AI","https://inworld.ai","AI characters & NPC dialogue"],
+      ["Ludo.ai","https://ludo.ai","AI game design & market research"],
+      ["Charisma.ai","https://charisma.ai","AI interactive story characters"],
+      ["Promethean AI","https://www.prometheanai.com","AI 3D world-building assistant"],
+      ["Modl.ai","https://www.modl.ai","AI game testing & bots"],
+      ["Anything World","https://anything.world","AI 3D animation rigging"],
+      ["CSM","https://3d.csm.ai","Text/image-to-3D generation"],
+      ["Tripo3D","https://www.tripo3d.ai","Fast text-to-3D model generator"],
+      ["Spline AI","https://spline.design","AI-assisted 3D web design"]
+    ]},
+    { name:"Translation & Language", letter:"V", tools:[
+      ["DeepL","https://www.deepl.com","High-accuracy neural translation"],
+      ["Google Translate","https://translate.google.com","Broad-coverage AI translation"],
+      ["Reverso","https://www.reverso.net","Translation with contextual examples"],
+      ["Papago","https://papago.naver.com","Naver's Asia-focused translator"],
+      ["Lilt","https://lilt.com","AI translation for enterprises"],
+      ["Unbabel","https://unbabel.com","AI + human hybrid translation"],
+      ["Microsoft Translator","https://www.bing.com/translator","AI-powered translation service"],
+      ["iTranslate","https://itranslate.com","AI translation app suite"],
+      ["Smartcat","https://www.smartcat.com","AI-assisted translation platform"],
+      ["ModernMT","https://www.modernmt.com","Adaptive neural translation"],
+      ["Tomedes","https://www.tomedes.com","AI + human translation service"]
+    ]},
+    { name:"Avatars & Digital Humans", letter:"W", tools:[
+      ["Hour One","https://hourone.ai","Text-to-video presenter avatars"],
+      ["Elai.io","https://elai.io","Avatar video from slides & text"],
+      ["Vidnoz","https://www.vidnoz.com","Free AI avatar video generator"],
+      ["Yepic AI","https://www.yepic.ai","Real-time interactive avatars"],
+      ["Synthesys","https://synthesys.io","AI avatar & voiceover studio"],
+      ["Rephrase.ai","https://www.rephrase.ai","Personalized AI video avatars"],
+      ["DeepBrain AI","https://www.deepbrain.io","AI human avatar video generation"],
+      ["Reface","https://reface.ai","AI face-swap video app"]
+    ]},
+    { name:"Search & Browsing Agents", letter:"X", tools:[
+      ["Comet","https://www.perplexity.ai/comet","Perplexity's agentic browser"],
+      ["Arc Search","https://arc.net/search","Browse-for-you search app"],
+      ["Bing Copilot","https://www.bing.com/chat","Search-integrated Microsoft assistant"],
+      ["Opera Aria","https://www.opera.com","Built-in browser AI assistant"],
+      ["Genspark","https://www.genspark.ai","AI-generated answer pages"],
+      ["Andi","https://andisearch.com","Conversational search engine"],
+      ["Dia Browser","https://www.diabrowser.com","AI-native web browser"],
+      ["Convergence AI","https://convergence.ai","Autonomous web-browsing agent"],
+      ["Browser Use","https://browser-use.com","Open-source AI browser automation"],
+      ["Exa","https://exa.ai","AI-native search engine for developers"],
+      ["Sider","https://sider.ai","AI browser sidebar assistant"]
+    ]}
+  ]}
+];
+
+const downloadSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>';
+
+function escapeAttr(str){
+  return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+}
+
+function buildRowEl(tool, code){
+  const [name, url, desc, hasApp] = tool;
+  let rowEl;
+  if (hasApp) {
+    rowEl = document.createElement('div');
+    rowEl.className = 'row';
+    rowEl.dataset.href = url;
+    rowEl.innerHTML =
+      '<span class="code flap">' + code + '</span>' +
+      '<span class="name flap">' + name + '</span>' +
+      '<span class="desc flap">' + desc + '</span>' +
+      '<span class="status flap">Online</span>' +
+      '<span class="gate-wrap flap">' +
+        '<a class="dl-app" href="' + escapeAttr(url) + '" target="_blank" rel="noopener" title="Open" onclick="event.stopPropagation()">' + downloadSvg + '</a>' +
+        '<span class="gate">Board &rarr;</span>' +
+      '</span>';
+  } else {
+    rowEl = document.createElement('a');
+    rowEl.className = 'row';
+    rowEl.href = url;
+    rowEl.target = '_blank';
+    rowEl.rel = 'noopener';
+    rowEl.innerHTML =
+      '<span class="code flap">' + code + '</span>' +
+      '<span class="name flap">' + name + '</span>' +
+      '<span class="desc flap">' + desc + '</span>' +
+      '<span class="status flap">Online</span>' +
+      '<span class="gate flap">Board &rarr;</span>';
+  }
+  return rowEl;
+}
+
+let searchIndex = [];
+
+function buildBoard(){
+  const pager = document.getElementById('pager');
+  const board = document.getElementById('board');
+  let totalTools = 0;
+  searchIndex = [];
+
+  TERMINALS.forEach((terminal, tIdx) => {
+    const pageId = 'page-' + (tIdx + 1);
+
+    const tab = document.createElement('button');
+    tab.className = 'pager-tab' + (tIdx === 0 ? ' active' : '');
+    tab.type = 'button';
+    tab.dataset.page = pageId;
+    tab.textContent = terminal.label;
+    pager.appendChild(tab);
+
+    const page = document.createElement('div');
+    page.className = 'page' + (tIdx === 0 ? ' active' : '');
+    page.id = pageId;
+
+    const colHeads = document.createElement('div');
+    colHeads.className = 'col-heads';
+    colHeads.innerHTML = '<span>Gate</span><span>Assistant</span><span>Purpose</span><span>Status</span><span></span>';
+    page.appendChild(colHeads);
+
+    terminal.categories.forEach(cat => {
+      const catEl = document.createElement('div');
+      catEl.className = 'category';
+      catEl.textContent = cat.name;
+      page.appendChild(catEl);
+
+      cat.tools.forEach((tool, i) => {
+        const [name, url, desc, hasApp] = tool;
+        const code = cat.letter + (i + 1);
+        totalTools++;
+        page.appendChild(buildRowEl(tool, code));
+        searchIndex.push({ code, name, url, desc, hasApp: !!hasApp, category: cat.name, terminal: terminal.label });
+      });
+    });
+
+    board.appendChild(page);
+  });
+
+  document.getElementById('footerCount').textContent = totalTools;
+  document.getElementById('marqueeCount').textContent = totalTools + '+';
+
+  const searchPage = document.createElement('div');
+  searchPage.className = 'page';
+  searchPage.id = 'page-search';
+  board.appendChild(searchPage);
+
+  // stagger split-flap entrance per row on the initially active page
+  document.querySelectorAll('.page.active .row').forEach((row, i) => {
+    row.querySelectorAll('.flap').forEach((el, j) => {
+      el.style.animationDelay = (i * 40 + j * 20) + 'ms';
+    });
+  });
+
+  wirePagerTabs();
+  wireDataHrefRows();
+  wireSearch();
+}
+
+function wirePagerTabs(){
+  const tabs = document.querySelectorAll('.pager-tab');
+  const pages = document.querySelectorAll('.page');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput && searchInput.value) {
+        searchInput.value = '';
+        document.getElementById('searchMeta').hidden = true;
+        document.getElementById('searchClear').hidden = true;
+      }
+      tabs.forEach(t => t.classList.remove('active'));
+      pages.forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      const activePage = document.getElementById(tab.dataset.page);
+      activePage.classList.add('active');
+      activePage.querySelectorAll('.row').forEach((row, i) => {
+        row.querySelectorAll('.flap').forEach((el, j) => {
+          el.style.animation = 'none';
+          void el.offsetWidth;
+          el.style.animation = '';
+          el.style.animationDelay = (i * 40 + j * 20) + 'ms';
+        });
+      });
+    });
+  });
+}
+
+function wireDataHrefRows(){
+  document.querySelectorAll('.row[data-href]').forEach(row => {
+    if (row.dataset.wired) return;
+    row.dataset.wired = '1';
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.dl-app')) return;
+      window.open(row.dataset.href, '_blank', 'noopener');
+    });
+    row.setAttribute('tabindex', '0');
+    row.addEventListener('keydown', (e) => {
+      if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('.dl-app')) {
+        e.preventDefault();
+        window.open(row.dataset.href, '_blank', 'noopener');
+      }
+    });
+  });
+}
+
+function renderSearch(query){
+  const q = query.trim().toLowerCase();
+  const searchPage = document.getElementById('page-search');
+  const meta = document.getElementById('searchMeta');
+  const clearBtn = document.getElementById('searchClear');
+
+  if (!q) {
+    clearBtn.hidden = true;
+    meta.hidden = true;
+    searchPage.classList.remove('active');
+    const savedTab = document.querySelector('.pager-tab.active');
+    if (savedTab) document.getElementById(savedTab.dataset.page).classList.add('active');
+    return;
+  }
+
+  clearBtn.hidden = false;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  searchPage.classList.add('active');
+
+  const matches = searchIndex.filter(item =>
+    item.name.toLowerCase().includes(q) ||
+    item.desc.toLowerCase().includes(q) ||
+    item.category.toLowerCase().includes(q) ||
+    item.terminal.toLowerCase().includes(q)
+  );
+
+  searchPage.innerHTML = '';
+  const colHeads = document.createElement('div');
+  colHeads.className = 'col-heads';
+  colHeads.innerHTML = '<span>Gate</span><span>Assistant</span><span>Purpose</span><span>Status</span><span></span>';
+  searchPage.appendChild(colHeads);
+
+  if (matches.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = 'No assistants match "' + query.trim() + '". Try another search.';
+    searchPage.appendChild(empty);
+  } else {
+    let lastCat = null;
+    matches.forEach(item => {
+      if (item.category !== lastCat) {
+        const catEl = document.createElement('div');
+        catEl.className = 'category';
+        catEl.textContent = item.category;
+        searchPage.appendChild(catEl);
+        lastCat = item.category;
+      }
+      searchPage.appendChild(buildRowEl([item.name, item.url, item.desc, item.hasApp], item.code));
+    });
+    searchPage.querySelectorAll('.row').forEach((row, i) => {
+      row.querySelectorAll('.flap').forEach((el, j) => {
+        el.style.animationDelay = (i * 30 + j * 15) + 'ms';
+      });
+    });
+    wireDataHrefRows();
+  }
+
+  meta.hidden = false;
+  meta.textContent = matches.length + ' assistant' + (matches.length === 1 ? '' : 's') + ' found for "' + query.trim() + '"';
+}
+
+function wireSearch(){
+  const searchInput = document.getElementById('searchInput');
+  const clearBtn = document.getElementById('searchClear');
+
+  searchInput.addEventListener('input', () => renderSearch(searchInput.value));
+
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      searchInput.value = '';
+      renderSearch('');
+      searchInput.blur();
+    }
+  });
+
+  clearBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    renderSearch('');
+    searchInput.focus();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    const tag = document.activeElement.tagName;
+    if (e.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA') {
+      e.preventDefault();
+      searchInput.focus();
+    }
+  });
+}
+
+function tick(){
+  const el = document.getElementById('clock');
+  const now = new Date();
+  const opts = { hour12:false, timeZone:'Asia/Karachi' };
+  const time = now.toLocaleTimeString('en-GB', opts);
+  el.childNodes[0].nodeValue = time + ' ';
+}
+tick();
+setInterval(tick, 1000);
+
+document.getElementById('year').textContent = new Date().getFullYear();
+
+// theme toggle
+const themeSwitch = document.getElementById('themeSwitch');
+const rootEl = document.documentElement;
+function setTheme(theme){
+  if(theme === 'light'){
+    rootEl.setAttribute('data-theme', 'light');
+    themeSwitch.setAttribute('aria-pressed', 'true');
+  } else {
+    rootEl.removeAttribute('data-theme');
+    themeSwitch.setAttribute('aria-pressed', 'false');
+  }
+}
+setTheme('dark');
+themeSwitch.addEventListener('click', () => {
+  const isLight = rootEl.getAttribute('data-theme') === 'light';
+  setTheme(isLight ? 'dark' : 'light');
+});
+
+// download this page as a standalone HTML file
+document.getElementById('downloadBtn').addEventListener('click', () => {
+  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'shaikh-ai-departures.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+buildBoard();
+</script>
+
+<!-- ===================== SUPABASE AUTH =====================
+     Password sign-in/up, Google OAuth, and 6-digit email OTP all run
+     through Supabase — no custom backend needed.
+     Dashboard: Authentication > Providers > Email (OTP is built in)
+     and Authentication > Providers > Google (if you want that button live).
+     ============================================================ -->
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  // ---- YOUR SUPABASE PROJECT ----
+  const SUPABASE_URL = "https://uamdzvvrnuoakiaoqxct.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhbWR6dnZybnVvYWtpYW9xeGN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4NzM2MjcsImV4cCI6MjEwMDQ0OTYyN30.ZdWyClEkPVs0mdUUTJwggheclc7DzGSIovjBdfEMzDA";
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const loginBtn = document.getElementById('loginBtn');
+  const authDropdown = document.getElementById('authDropdown');
+  const authWho = document.getElementById('authWho');
+  const logoutBtn = document.getElementById('logoutBtn');
+
+  const overlay = document.getElementById('authOverlay');
+  const modalClose = document.getElementById('authModalClose');
+  const tabSignIn = document.getElementById('tabSignIn');
+  const tabSignUp = document.getElementById('tabSignUp');
+  const form = document.getElementById('authForm');
+  const emailInput = document.getElementById('authEmail');
+  const passwordInput = document.getElementById('authPassword');
+  const submitBtn = document.getElementById('authSubmit');
+  const errorBox = document.getElementById('authError');
+  const googleBtn = document.getElementById('googleSignIn');
+
+  const methodPassword = document.getElementById('methodPassword');
+  const methodPasscode = document.getElementById('methodPasscode');
+  const panelPassword = document.getElementById('panelPassword');
+  const panelPasscode = document.getElementById('panelPasscode');
+  const passcodeHint = document.getElementById('passcodeHint');
+  const passcodeRequestForm = document.getElementById('passcodeRequestForm');
+  const passcodeVerifyForm = document.getElementById('passcodeVerifyForm');
+  const passcodeEmailInput = document.getElementById('passcodeEmail');
+  const passcodeCodeInput = document.getElementById('passcodeCode');
+  const passcodeSendBtn = document.getElementById('passcodeSendBtn');
+  const passcodeVerifyBtn = document.getElementById('passcodeVerifyBtn');
+  const passcodeResendBtn = document.getElementById('passcodeResendBtn');
+
+  let method = 'password'; // or 'passcode'
+  let pendingPasscodeEmail = '';
+  let mode = 'signin'; // or 'signup'
+
+  function showError(msg){
+    errorBox.textContent = msg;
+    errorBox.classList.add('show');
+  }
+  function clearError(){
+    errorBox.textContent = '';
+    errorBox.classList.remove('show');
+  }
+  function openModal(){
+    clearError();
+    form.reset();
+    resetPasscodeFlow();
+    overlay.classList.add('open');
+    setTimeout(() => emailInput.focus(), 0);
+  }
+  function closeModal(){
+    overlay.classList.remove('open');
+  }
+  function setMode(next){
+    mode = next;
+    tabSignIn.classList.toggle('active', mode === 'signin');
+    tabSignUp.classList.toggle('active', mode === 'signup');
+    submitBtn.textContent = mode === 'signin' ? 'Sign In' : 'Sign Up';
+    passwordInput.autocomplete = mode === 'signin' ? 'current-password' : 'new-password';
+    clearError();
+  }
+  function setMethod(next){
+    method = next;
+    methodPassword.classList.toggle('active', method === 'password');
+    methodPasscode.classList.toggle('active', method === 'passcode');
+    panelPassword.classList.toggle('active', method === 'password');
+    panelPasscode.classList.toggle('active', method === 'passcode');
+    clearError();
+  }
+  function resetPasscodeFlow(){
+    pendingPasscodeEmail = '';
+    passcodeRequestForm.reset();
+    passcodeVerifyForm.reset();
+    passcodeRequestForm.style.display = '';
+    passcodeVerifyForm.style.display = 'none';
+    passcodeHint.textContent = "Enter your email — we'll send a 6-digit code to sign you in.";
+    passcodeResendBtn.disabled = false;
+    passcodeResendBtn.textContent = 'Resend code';
+  }
+
+  const downloadBtn = document.getElementById('downloadBtn');
+  const boardWrap = document.getElementById('boardWrap');
+  const boardLockBtn = document.getElementById('boardLockBtn');
+
+  let isLocked = true;
+  let currentUser = null;
+
+  function setLocked(locked){
+    isLocked = locked;
+    boardWrap.classList.toggle('locked', locked);
+    downloadBtn.disabled = locked;
+    downloadBtn.title = locked ? 'Sign in to download' : 'Download page';
+  }
+  // Start locked until Supabase reports the session, so nothing is
+  // usable while that check is in flight.
+  setLocked(true);
+
+  boardLockBtn.addEventListener('click', openModal);
+
+  // Capture-phase gate: while locked, swallow clicks on rows, the
+  // per-row "open app" links, and the download button before their
+  // own handlers run, and open the sign-in modal instead.
+  document.addEventListener('click', (e) => {
+    if (!isLocked) return;
+    const blocked = e.target.closest('.row, .dl-app, #downloadBtn');
+    if (blocked) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      openModal();
+    }
+  }, true);
+
+  loginBtn.addEventListener('click', () => {
+    if (currentUser) {
+      authDropdown.classList.toggle('open');
+    } else {
+      openModal();
+    }
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#authWrap')) authDropdown.classList.remove('open');
+  });
+  modalClose.addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+  tabSignIn.addEventListener('click', () => setMode('signin'));
+  tabSignUp.addEventListener('click', () => setMode('signup'));
+  methodPassword.addEventListener('click', () => setMethod('password'));
+  methodPasscode.addEventListener('click', () => setMethod('passcode'));
+
+  // ---- 6-digit email OTP (Supabase built-in, no backend needed) ----
+  passcodeRequestForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearError();
+    const email = passcodeEmailInput.value.trim();
+    if (!email) { showError('Enter an email first.'); return; }
+    passcodeSendBtn.disabled = true;
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: true }
+      });
+      if (error) throw error;
+      pendingPasscodeEmail = email;
+      passcodeRequestForm.style.display = 'none';
+      passcodeVerifyForm.style.display = '';
+      passcodeHint.textContent = 'We sent a 6-digit code to ' + email + '.';
+      setTimeout(() => passcodeCodeInput.focus(), 0);
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      passcodeSendBtn.disabled = false;
+    }
+  });
+
+  passcodeVerifyForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearError();
+    const code = passcodeCodeInput.value.trim();
+    if (code.length !== 6) { showError('Enter the 6-digit code.'); return; }
+    passcodeVerifyBtn.disabled = true;
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: pendingPasscodeEmail,
+        token: code,
+        type: 'email'
+      });
+      if (error) throw error;
+      closeModal();
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      passcodeVerifyBtn.disabled = false;
+    }
+  });
+
+  passcodeResendBtn.addEventListener('click', async () => {
+    if (!pendingPasscodeEmail) return;
+    clearError();
+    passcodeResendBtn.disabled = true;
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: pendingPasscodeEmail,
+        options: { shouldCreateUser: true }
+      });
+      if (error) throw error;
+      passcodeResendBtn.textContent = 'Code resent';
+      setTimeout(() => { passcodeResendBtn.textContent = 'Resend code'; passcodeResendBtn.disabled = false; }, 4000);
+    } catch (err) {
+      showError(err.message);
+      passcodeResendBtn.disabled = false;
+    }
+  });
+
+  // ---- Password sign in / sign up ----
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearError();
+    submitBtn.disabled = true;
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    try {
+      const { error } = mode === 'signin'
+        ? await supabase.auth.signInWithPassword({ email, password })
+        : await supabase.auth.signUp({ email, password });
+      if (error) throw error;
+      closeModal();
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  // ---- Google OAuth ----
+  googleBtn.addEventListener('click', async () => {
+    clearError();
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.href }
+      });
+      if (error) throw error;
+      // Page will redirect to Google, then back here — no further
+      // code runs in this handler.
+    } catch (err) {
+      showError(err.message);
+    }
+  });
+
+  logoutBtn.addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    authDropdown.classList.remove('open');
+  });
+
+  function applySession(user){
+    currentUser = user;
+    if (user) {
+      const label = (user.email || 'U')[0].toUpperCase();
+      loginBtn.innerHTML = '<span style="font-family:\'IBM Plex Mono\',monospace;font-weight:700;">' + label + '</span>';
+      loginBtn.title = user.email || 'Signed in';
+      authWho.textContent = user.email || 'Signed in';
+      setLocked(false);
+    } else {
+      loginBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+      loginBtn.title = 'Log in';
+      authDropdown.classList.remove('open');
+      setLocked(true);
+    }
+  }
+
+  // Initial check on page load.
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    applySession(session?.user || null);
+  });
+
+  // Keep the UI in sync on every future change (sign in, sign out,
+  // token refresh, OAuth redirect completing, etc).
+  supabase.auth.onAuthStateChange((_event, session) => {
+    applySession(session?.user || null);
+  });
+</script>
+
+</body>
+</html>
